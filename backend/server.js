@@ -17,6 +17,28 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Server is running" });
 });
 
+// Test endpoint to check if Firestore is accessible
+app.get("/api/test-firestore", async (req, res) => {
+  try {
+    console.log("Testing Firestore connection...");
+    // Try to access Firestore without reading data
+    const collections = await db.listCollections();
+    console.log("Firestore connection successful, collections:", collections.map(c => c.id));
+    res.json({ 
+      status: "OK", 
+      message: "Firestore connection successful",
+      collections: collections.map(c => c.id)
+    });
+  } catch (err) {
+    console.error("Firestore connection test failed:", err);
+    res.status(500).json({ 
+      status: "ERROR", 
+      message: "Firestore connection failed",
+      error: err.message 
+    });
+  }
+});
+
 // Create a job card
 app.post("/api/requests", async (req, res) => {
   try {
@@ -40,7 +62,15 @@ app.get("/api/requests", async (req, res) => {
     res.json(jobCards);
   } catch (err) {
     console.error("Error fetching job cards:", err);
-    res.status(500).json({ message: err.message });
+    console.error("Error details:", {
+      message: err.message,
+      code: err.code,
+      stack: err.stack
+    });
+    res.status(500).json({ 
+      message: err.message,
+      details: "Error connecting to Firestore or fetching data"
+    });
   }
 });
 
