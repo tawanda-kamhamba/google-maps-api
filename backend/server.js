@@ -39,6 +39,15 @@ app.get("/api/test-firestore", async (req, res) => {
   }
 });
 
+// Simple test endpoint that doesn't use Firestore
+app.get("/api/test-simple", (req, res) => {
+  res.json({ 
+    status: "OK", 
+    message: "Simple endpoint working",
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Create a job card
 app.post("/api/requests", async (req, res) => {
   try {

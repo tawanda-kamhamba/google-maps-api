@@ -6,6 +6,7 @@
 <body>
     <h1>Testing Deployed Backend API</h1>
     <button onclick="testHealth()">Test Health</button>
+    <button onclick="testSimple()">Test Simple</button>
     <button onclick="testFirestore()">Test Firestore</button>
     <button onclick="testAPI()">Test Requests API</button>
     <div id="result"></div>
@@ -23,12 +24,24 @@
             }
         }
 
+        async function testSimple() {
+            try {
+                const response = await fetch('https://google-maps-api-3qi0.onrender.com/api/test-simple');
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 
+                    `<h3>Simple Test Response:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<h3>Simple Test Error:</h3><pre>${error.message}</pre>`;
+            }
+        }
+
         async function testFirestore() {
             try {
                 const response = await fetch('https://google-maps-api-3qi0.onrender.com/api/test-firestore');
-                const data = await response.json();
+                const responseText = await response.text();
                 document.getElementById('result').innerHTML = 
-                    `<h3>Firestore Test Response:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    `<h3>Firestore Test Raw Response:</h3><pre>Status: ${response.status}</pre><pre>${responseText}</pre>`;
             } catch (error) {
                 document.getElementById('result').innerHTML = 
                     `<h3>Firestore Test Error:</h3><pre>${error.message}</pre>`;
@@ -38,9 +51,9 @@
         async function testAPI() {
             try {
                 const response = await fetch('https://google-maps-api-3qi0.onrender.com/api/requests');
-                const data = await response.json();
+                const responseText = await response.text();
                 document.getElementById('result').innerHTML = 
-                    `<h3>API Response:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    `<h3>API Raw Response:</h3><pre>Status: ${response.status}</pre><pre>${responseText}</pre>`;
             } catch (error) {
                 document.getElementById('result').innerHTML = 
                     `<h3>Error:</h3><pre>${error.message}</pre>`;
