@@ -6,12 +6,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Add error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ message: err.message || 'Internal server error' });
+});
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", message: "Server is running" });
+});
+
 // Create a job card
 app.post("/api/requests", async (req, res) => {
   try {
+    console.log("Creating job card:", req.body);
     const docRef = await db.collection("jobCards").add(req.body);
+    console.log("Job card created with ID:", docRef.id);
     res.status(201).json({ id: docRef.id });
   } catch (err) {
+    console.error("Error creating job card:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -19,10 +33,13 @@ app.post("/api/requests", async (req, res) => {
 // Get all job cards
 app.get("/api/requests", async (req, res) => {
   try {
+    console.log("Fetching all job cards");
     const snapshot = await db.collection("jobCards").get();
     const jobCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Found ${jobCards.length} job cards`);
     res.json(jobCards);
   } catch (err) {
+    console.error("Error fetching job cards:", err);
     res.status(500).json({ message: err.message });
   }
 });
