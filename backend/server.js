@@ -27,6 +27,81 @@ app.get("/api/requests", async (req, res) => {
   }
 });
 
+// Get job card history for a specific user
+app.get("/api/history", async (req, res) => {
+  try {
+    const { username } = req.query;
+    const snapshot = await db.collection("jobCards")
+      .where("requestedBy", "==", username)
+      .get();
+    const jobCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(jobCards);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get pending disbursements
+app.get("/api/accounts/pending", async (req, res) => {
+  try {
+    const snapshot = await db.collection("jobCards")
+      .where("status", "==", "approved")
+      .where("disbursed", "==", false)
+      .get();
+    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get disbursed funds
+app.get("/api/accounts/disbursed", async (req, res) => {
+  try {
+    const snapshot = await db.collection("jobCards")
+      .where("disbursed", "==", true)
+      .get();
+    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get rejected requests
+app.get("/api/accounts/rejected", async (req, res) => {
+  try {
+    const snapshot = await db.collection("jobCards")
+      .where("status", "==", "rejected")
+      .get();
+    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Process funds for a request
+app.post("/api/accounts/process/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { receiptSubmitted } = req.body;
+    
+    const docRef = db.collection("jobCards").doc(id);
+    await docRef.update({
+      disbursed: true,
+      dateDisbursed: new Date().toISOString(),
+      receiptSubmitted: receiptSubmitted || false,
+      status: "completed"
+    });
+    
+    const updatedDoc = await docRef.get();
+    res.json({ id: updatedDoc.id, ...updatedDoc.data() });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Login route
 app.post("/api/auth/login", async (req, res) => {
   const { username, password, role } = req.body;

@@ -32,7 +32,7 @@ import { Search, FileDownload } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import axios from "axios";
+import api from "../utils/api";
 
 // Mock data will be used as a fallback
 import mockApprovedRequests from "../data/approvedRequests";
@@ -69,9 +69,9 @@ const AccountsPanel = () => {
       setLoading(true);
       try {
         const [pendingRes, disbursedRes, rejectedRes] = await Promise.all([
-          axios.get("/api/accounts/pending"),
-          axios.get("/api/accounts/disbursed"),
-          axios.get("/api/accounts/rejected"),
+          api.get("/api/accounts/pending"),
+          api.get("/api/accounts/disbursed"),
+          api.get("/api/accounts/rejected"),
         ]);
         setPendingRequests(pendingRes.data);
         setDisbursedRequests(disbursedRes.data);
@@ -113,7 +113,7 @@ const AccountsPanel = () => {
     if (!selectedRequest) return;
 
     try {
-      const response = await axios.post(`/api/accounts/process/${selectedRequest.id}`, {
+      const response = await api.post(`/api/accounts/process/${selectedRequest.id}`, {
         receiptSubmitted,
       });
 

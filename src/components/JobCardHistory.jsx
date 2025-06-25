@@ -16,7 +16,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { Assignment, CheckCircle, Cancel, Pending, History } from "@mui/icons-material";
-import axios from "axios";
+import api from "../utils/api";
 import { AuthContext } from "../context/AuthContext";
 
 // The backend now provides the data.
@@ -47,7 +47,7 @@ const JobCardHistory = () => {
       }
       setLoading(true);
       try {
-        const response = await axios.get(`/api/history?username=${user.username}`);
+        const response = await api.get(`/api/history?username=${user.username}`);
         setJobCards(response.data);
       } catch (error) {
         console.error("Failed to fetch job card history:", error);

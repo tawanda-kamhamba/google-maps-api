@@ -18,7 +18,7 @@ import {
   Chip,
 } from "@mui/material"
 import { AuthContext } from "../context/AuthContext"
-import axios from "axios"
+import api from "../utils/api"
 
 const RequestForm = () => {
   const { user } = useContext(AuthContext)
@@ -58,7 +58,7 @@ const RequestForm = () => {
 
     try {
       // In a real app, you would send this data to your backend
-      const response = await axios.post("/api/requests", {
+      const response = await api.post("/api/requests", {
         ...requestDetails,
         status: "pending",
         dateSubmitted: new Date().toISOString(),
