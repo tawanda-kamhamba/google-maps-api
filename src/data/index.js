@@ -1,0 +1,41 @@
+const mockDisbursedRequests = [
+  {
+    id: 103,
+    title: "Office Furniture",
+    requestedBy: "Carol Davis",
+    department: "HR",
+    dateRequested: "2023-03-01",
+    dateApproved: "2023-03-02",
+    approvedBy: "Sarah Thompson",
+    dateDisbursed: "2023-03-03",
+    disbursedBy: "Finance Team",
+    receiptSubmitted: true,
+    totalAmount: 750.0,
+    status: "completed",
+    items: [
+      { description: "Ergonomic Chair", quantity: 1, estimatedCost: 350.0 },
+      { description: "Desk", quantity: 1, estimatedCost: 400.0 },
+    ],
+    justification: "New hire equipment.",
+  },
+  {
+    id: 104,
+    title: "Team Building Event",
+    requestedBy: "Daniel Brown",
+    department: "Sales",
+    dateRequested: "2023-02-25",
+    dateApproved: "2023-02-26",
+    approvedBy: "Michael Wilson",
+    dateDisbursed: "2023-02-27",
+    disbursedBy: "Finance Team",
+    receiptSubmitted: false,
+    totalAmount: 500.0,
+    status: "completed",
+    items: [
+      { description: "Team Lunch", quantity: 1, estimatedCost: 300.0 },
+      { description: "Activity Materials", quantity: 1, estimatedCost: 200.0 },
+    ],
+    justification: "Quarterly team building activity.",
+  },
+];
+export default mockDisbursedRequests;
