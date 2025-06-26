@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useContext } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Box,
   Paper,
@@ -21,6 +22,7 @@ import { AuthContext } from "../context/AuthContext"
 import api from "../utils/api"
 
 const RequestForm = () => {
+  const navigate = useNavigate()
   const { user } = useContext(AuthContext)
   const [requestDetails, setRequestDetails] = useState({
     date: "",
@@ -90,6 +92,11 @@ const RequestForm = () => {
         contactNo: "",
         jobCardId: "",
       })
+
+      // Redirect to dashboard
+      setTimeout(() => {
+        navigate("/dashboard")
+      }, 1000) // Delay to allow user to see success message
     } catch (error) {
       setNotification({
         open: true,

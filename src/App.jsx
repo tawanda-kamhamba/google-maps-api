@@ -16,6 +16,7 @@ import AccountsPanel from "../src/components/AccountsPanel";
 import Navigation from "../src/components/Navigation";
 import { AuthProvider, AuthContext } from "./context/AuthContext";
 import JobCardHistory from "./components/JobCardHistory";
+import DepartmentHistory from "./components/DepartmentHistory";
 
 const theme = createTheme({
   palette: {
@@ -75,6 +76,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <JobCardHistory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/department-history"
+                element={
+                  <ProtectedRoute roles={["department_head"]}>
+                    <DepartmentHistory />
                   </ProtectedRoute>
                 }
               />

@@ -1,9 +1,39 @@
 import express from "express";
 import cors from "cors";
+import { readFile, writeFile } from "fs/promises";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Use a path relative to this file, not process.cwd()
+const DATA_FILE = path.join(__dirname, "jobCards.json");
+
+// Helper to read job cards
+async function readJobCards() {
+  try {
+    const data = await readFile(DATA_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch (err) {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  }
+}
+
+// Helper to write job cards
+async function writeJobCards(jobCards) {
+  try {
+    await writeFile(DATA_FILE, JSON.stringify(jobCards, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to write job cards:", err);
+    throw err;
+  }
+}
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -19,105 +49,47 @@ app.get("/api/test-simple", (req, res) => {
   });
 });
 
-// Test Firestore connection
-app.get("/api/test-firestore", async (req, res) => {
-  try {
-    const admin = await import("firebase-admin");
-    const { readFileSync } = await import("fs");
-
-    let serviceAccount;
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-      const credentialsString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-      serviceAccount = JSON.parse(credentialsString);
-    } else {
-      serviceAccount = JSON.parse(
-        readFileSync(new URL("./serviceAccountKey.json", import.meta.url))
-      );
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    
-    const db = admin.firestore();
-    const collections = await db.listCollections();
-    
-    res.json({ 
-      status: "OK", 
-      message: "Firestore connection successful",
-      collections: collections.map(c => c.id)
-    });
-  } catch (err) {
-    console.error("Firestore connection test failed:", err);
-    res.status(500).json({ 
-      status: "ERROR", 
-      message: "Firestore connection failed",
-      error: err.message 
-    });
-  }
-});
-
 // Get all job cards
 app.get("/api/requests", async (req, res) => {
   try {
-    const admin = await import("firebase-admin");
-    const { readFileSync } = await import("fs");
-
-    let serviceAccount;
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-      const credentialsString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-      serviceAccount = JSON.parse(credentialsString);
-    } else {
-      serviceAccount = JSON.parse(
-        readFileSync(new URL("./serviceAccountKey.json", import.meta.url))
-      );
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    
-    const db = admin.firestore();
-    const snapshot = await db.collection("jobCards").get();
-    const jobCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
+    const jobCards = await readJobCards();
     res.json(jobCards);
   } catch (err) {
-    console.error("Error fetching job cards:", err);
-    res.status(500).json({ 
-      message: err.message,
-      details: "Error connecting to Firestore or fetching data"
-    });
+    res.status(500).json({ message: "Failed to read job cards", error: err.message });
   }
 });
 
 // Create a job card
 app.post("/api/requests", async (req, res) => {
   try {
-    const admin = await import("firebase-admin");
-    const { readFileSync } = await import("fs");
-
-    let serviceAccount;
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-      const credentialsString = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-      serviceAccount = JSON.parse(credentialsString);
-    } else {
-      serviceAccount = JSON.parse(
-        readFileSync(new URL("./serviceAccountKey.json", import.meta.url))
-      );
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    
-    const db = admin.firestore();
-    const docRef = await db.collection("jobCards").add(req.body);
-    
-    res.status(201).json({ id: docRef.id });
+    const jobCards = await readJobCards();
+    const newJobCard = { id: Date.now().toString(), ...req.body };
+    jobCards.push(newJobCard);
+    await writeJobCards(jobCards);
+    res.status(201).json({ id: newJobCard.id });
   } catch (err) {
-    console.error("Error creating job card:", err);
-    res.status(500).json({ message: err.message });
+    console.error("Failed to create job card:", err);
+    res.status(500).json({ message: "Failed to create job card", error: err.message });
+  }
+});
+
+// Update a job card (approve, edit, etc.)
+app.put("/api/requests/:id", async (req, res) => {
+  try {
+    const jobCards = await readJobCards();
+    console.log('PUT /api/requests/:id called with id:', req.params.id);
+    console.log('All job card ids:', jobCards.map(card => card.id));
+    const idx = jobCards.findIndex(card => card.id === req.params.id);
+    if (idx === -1) {
+      console.log('Job card not found for id:', req.params.id);
+      return res.status(404).json({ message: "Job card not found" });
+    }
+    // Update fields from request body
+    jobCards[idx] = { ...jobCards[idx], ...req.body };
+    await writeJobCards(jobCards);
+    res.json(jobCards[idx]);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update job card", error: err.message });
   }
 });
 

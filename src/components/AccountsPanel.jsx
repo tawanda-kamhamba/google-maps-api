@@ -33,6 +33,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import api from "../utils/api";
+import { useNavigate } from "react-router-dom";
 
 // Mock data will be used as a fallback
 import mockApprovedRequests from "../data/approvedRequests";
@@ -64,18 +65,17 @@ const AccountsPanel = () => {
     searchTerm: "",
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchRequests = async () => {
       setLoading(true);
       try {
-        const [pendingRes, disbursedRes, rejectedRes] = await Promise.all([
-          api.get("/api/accounts/pending"),
-          api.get("/api/accounts/disbursed"),
-          api.get("/api/accounts/rejected"),
-        ]);
-        setPendingRequests(pendingRes.data);
-        setDisbursedRequests(disbursedRes.data);
-        setRejectedRequests(rejectedRes.data);
+        const res = await api.get("/api/requests");
+        const all = res.data || [];
+        setPendingRequests(all.filter(card => card.status === 'approved'));
+        setDisbursedRequests(all.filter(card => card.status === 'processed' || card.status === 'disbursed'));
+        setRejectedRequests(all.filter(card => card.status === 'rejected'));
       } catch (error) {
         console.error("Failed to fetch account data, using mock data as fallback:", error);
         setNotification({
@@ -84,9 +84,9 @@ const AccountsPanel = () => {
           severity: "warning",
         });
         // Fallback to mock data
-        setPendingRequests(mockApprovedRequests);
-        setDisbursedRequests(mockDisbursedRequests);
-        setRejectedRequests(mockRejectedRequests);
+        setPendingRequests(Array.isArray(mockApprovedRequests) ? mockApprovedRequests : []);
+        setDisbursedRequests(Array.isArray(mockDisbursedRequests) ? mockDisbursedRequests : []);
+        setRejectedRequests(Array.isArray(mockRejectedRequests) ? mockRejectedRequests : []);
       } finally {
         setLoading(false);
       }
@@ -113,22 +113,24 @@ const AccountsPanel = () => {
     if (!selectedRequest) return;
 
     try {
-      const response = await api.post(`/api/accounts/process/${selectedRequest.id}`, {
+      // Update the request status to 'processed' and set dateProcessed
+      const response = await api.put(`/api/requests/${selectedRequest.id}`, {
+        ...selectedRequest,
+        status: 'processed',
+        dateProcessed: new Date().toISOString(),
         receiptSubmitted,
       });
-
-      // Update local state from the response
+      // Update local state
       const updatedRequest = response.data;
       setPendingRequests(pendingRequests.filter((req) => req.id !== updatedRequest.id));
       setDisbursedRequests([updatedRequest, ...disbursedRequests]);
-
       setNotification({
         open: true,
         message: "Funds processed successfully!",
         severity: "success",
       });
-
       handleCloseDialog();
+      navigate("/dashboard");
     } catch (error) {
       console.error("Failed to process funds:", error);
       setNotification({
@@ -219,14 +221,18 @@ const AccountsPanel = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {pendingRequests.map((request) => (
+                    {(Array.isArray(pendingRequests) ? pendingRequests : []).map((request) => (
                       <TableRow key={request.id}>
                         <TableCell>{request.id}</TableCell>
-                        <TableCell>{request.title}</TableCell>
+                        <TableCell>{request.relatedToProject}</TableCell>
                         <TableCell>{request.department}</TableCell>
                         <TableCell>{request.requestedBy}</TableCell>
                         <TableCell>{request.dateApproved}</TableCell>
-                        <TableCell>${request.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell>{
+                          typeof request.hrs === 'number' || (!isNaN(Number(request.hrs)) && request.hrs !== null && request.hrs !== undefined)
+                            ? `$${(Number(request.hrs) * 1.5).toFixed(2)}`
+                            : 'N/A'
+                        }</TableCell>
                         <TableCell>
                           <Button
                             variant="contained"
@@ -266,14 +272,18 @@ const AccountsPanel = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {disbursedRequests.map((request) => (
+                    {(Array.isArray(disbursedRequests) ? disbursedRequests : []).map((request) => (
                       <TableRow key={request.id}>
                         <TableCell>{request.id}</TableCell>
-                        <TableCell>{request.title}</TableCell>
+                        <TableCell>{request.relatedToProject}</TableCell>
                         <TableCell>{request.department}</TableCell>
                         <TableCell>{request.requestedBy}</TableCell>
                         <TableCell>{request.dateDisbursed}</TableCell>
-                        <TableCell>${request.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell>{
+                          typeof request.hrs === 'number' || (!isNaN(Number(request.hrs)) && request.hrs !== null && request.hrs !== undefined)
+                            ? `$${(Number(request.hrs) * 1.5).toFixed(2)}`
+                            : 'N/A'
+                        }</TableCell>
                         <TableCell>
                           <Chip
                             label={
@@ -324,15 +334,19 @@ const AccountsPanel = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rejectedRequests.map((request) => (
+                    {(Array.isArray(rejectedRequests) ? rejectedRequests : []).map((request) => (
                       <TableRow key={request.id}>
                         <TableCell>{request.id}</TableCell>
-                        <TableCell>{request.title}</TableCell>
+                        <TableCell>{request.relatedToProject}</TableCell>
                         <TableCell>{request.department}</TableCell>
                         <TableCell>{request.requestedBy}</TableCell>
                         <TableCell>{request.dateRejected}</TableCell>
                         <TableCell>{request.rejectedBy}</TableCell>
-                        <TableCell>${request.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell>{
+                          typeof request.hrs === 'number' || (!isNaN(Number(request.hrs)) && request.hrs !== null && request.hrs !== undefined)
+                            ? `$${(Number(request.hrs) * 1.5).toFixed(2)}`
+                            : 'N/A'
+                        }</TableCell>
                         <TableCell>
                           <Button
                             variant="outlined"
@@ -363,7 +377,7 @@ const AccountsPanel = () => {
           <>
             <DialogTitle>
               {tabValue === 0 ? "Process Funds" : "Request Details"}:{" "}
-              {selectedRequest.title}
+              {selectedRequest.relatedToProject}
             </DialogTitle>
             <DialogContent>
               <Box sx={{ mb: 3 }}>
